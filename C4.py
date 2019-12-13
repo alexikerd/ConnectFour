@@ -3,8 +3,10 @@ import pygame
 import math
 import sys
 from C4Backend import Game, Player, Button, Menu_Piece, Cloud, Text_Editor, Key
-import multiprocessing
 import time
+import asyncio
+
+
 
 pygame.init()
 
@@ -783,6 +785,7 @@ while game.over==False:
 						game.board = np.zeros((6,7))
 						game.turn = np.random.randint(0,2)
 						game.display = 'Title'
+						x = 3
 					elif game.is_tie(game.board)==True:
 						game.tie = True
 						draw_text(screen,50,250,0,'It was a tie',black)
@@ -791,6 +794,7 @@ while game.over==False:
 						game.board = np.zeros((6,7))
 						game.turn = np.random.randint(0,2)
 						game.display = 'Title'
+						x = 3
 					else:
 						game.playerlist[game.turn].thinking=False
 						game.turn = (game.turn+1)%2
@@ -828,6 +832,7 @@ while game.over==False:
 							game.board = np.zeros((6,7))
 							game.turn = np.random.randint(0,2)
 							game.display = 'Title'
+							x = 3
 						elif game.is_tie(game.board)==True:
 							game.tie = True
 							draw_text(screen,50,250,0,'It was a tie',black)
@@ -836,6 +841,7 @@ while game.over==False:
 							game.board = np.zeros((6,7))
 							game.turn = np.random.randint(0,2)
 							game.display = 'Title'
+							x = 3
 						else:
 							game.turn = (game.turn+1)%2
 					else:

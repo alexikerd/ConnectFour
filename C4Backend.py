@@ -3,6 +3,7 @@ import pygame
 import math
 import sys
 import time
+import asyncio
 
 display_width = 800
 display_height = 600
@@ -149,7 +150,7 @@ class Game():
         pygame.draw.circle(screen,self.player_colors[self.turn+1],((int(x*self.squaresize+self.boardx + self.squaresize*0.5)),int((self.boardy - self.squaresize*0.5))),int(self.squaresize*0.4))
 
 
-    def evaluate_board(self,board,piece):
+    def evaluate_board(self,board,piece,minimatrix):
         value = 0
 
                  #horizontal counting         
@@ -169,19 +170,19 @@ class Game():
                 if (num_1>0 and num_2>0) or (num_1 + num_2)==0:
                     value = value
                 elif num_1==4:
-                    value = 1000
+                    value = minimatrix[3]
                     return value
                 elif num_1==3:
-                    value += 5
+                    value += minimatrix[2]                   
                 elif num_1==2:
-                    value += 2
+                    value += minimatrix[1]
                 elif num_2==4:
-                    value = -1000
+                    value = -minimatrix[3]
                     return value
                 elif num_2==3:
-                    value -= 5
+                    value -= minimatrix[2]
                 elif num_2==2:
-                    value -= 2
+                    value -= minimatrix[1]
 
 
                 #vertical counting   
@@ -201,19 +202,20 @@ class Game():
                 if (num_1>0 and num_2>0) or (num_1 + num_2)==0:
                     value = value
                 elif num_1==4:
-                    value = 1000
+                    value = minimatrix[3]
                     return value
                 elif num_1==3:
-                    value += 5
+                    value += minimatrix[2]
                 elif num_1==2:
-                    value += 2
+                    value += minimatrix[1]
                 elif num_2==4:
-                    value = -1000
+                    value = -minimatrix[3]
                     return value
                 elif num_2==3:
-                    value -= 5
+                    value -= minimatrix[2]
                 elif num_2==2:
-                    value -= 2
+                    value -= minimatrix[1]
+
 
      
 #upper right diagonal counting
@@ -234,19 +236,19 @@ class Game():
                 if (num_1>0 and num_2>0) or (num_1 + num_2)==0:
                     value = value
                 elif num_1==4:
-                    value = 1000
+                    value = minimatrix[3]
                     return value
                 elif num_1==3:
-                    value += 5
+                    value += minimatrix[2]
                 elif num_1==2:
-                    value += 2
+                    value += minimatrix[1]
                 elif num_2==4:
-                    value = -1000
+                    value = -minimatrix[3]
                     return value
                 elif num_2==3:
-                    value -= 5
+                    value -= minimatrix[2]
                 elif num_2==2:
-                    value -= 2        
+                    value -= minimatrix[1]        
 
 
                             
@@ -268,27 +270,27 @@ class Game():
                 if (num_1>0 and num_2>0) or (num_1 + num_2)==0:
                     value = value
                 elif num_1==4:
-                    value = 1000
+                    value = minimatrix[3]
                     return value
                 elif num_1==3:
-                    value += 5
+                    value += minimatrix[2]
                 elif num_1==2:
-                    value += 2
+                    value += minimatrix[1]
                 elif num_2==4:
-                    value = -1000
+                    value = -minimatrix[3]
                     return value
                 elif num_2==3:
-                    value -= 5
+                    value -= minimatrix[2]
                 elif num_2==2:
-                    value -= 2        
+                    value -= minimatrix[1]        
 
 
             #center counting
         for r in range(board.shape[0]):
             if board[r][3]==piece:
-                value += 1
+                value += minimatrix[0]
             elif board[r][3]==(piece%2 + 1):
-                value -= 1
+                value -= minimatrix[0]
             else:
                 value = value
 
@@ -297,9 +299,9 @@ class Game():
         return value
 
 
-    def minimax(self, node, depth, current_turn, piece, alpha, beta): #There is an error with determining values
+    def minimax(self, node, depth, current_turn, piece, alpha, beta, minimatrix):
         if depth==0:
-            return self.evaluate_board(node,(self.turn)+1)
+            return self.evaluate_board(node,(self.turn)+1,minimatrix)
 
         elif self.is_tie(node)==True:
             return 0
@@ -313,8 +315,8 @@ class Game():
                         valid_row = Game().next_open_row(node,c)
                         child[valid_row][c] = piece
                         if Game().is_gameover(child,valid_row,c,piece)==True:
-                            return 1000000
-                        value = max(value, self.minimax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta))
+                            return self.evaluate_board(child,(self.turn)+1,minimatrix)
+                        value = max(value, self.minimax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta,minimatrix))
                         alpha = max(alpha,value)
                     if alpha>=beta:
                         break
@@ -329,8 +331,8 @@ class Game():
                         valid_row = Game().next_open_row(node,c)
                         child[valid_row][c] = piece
                         if Game().is_gameover(child,valid_row,c,piece)==True:
-                            return -1000000
-                        value = min(value, self.minimax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta))
+                            return self.evaluate_board(child,(self.turn)+1,minimatrix)
+                        value = min(value, self.minimax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta,minimatrix))
                         beta = min(beta,value)
                     if alpha>=beta:
                         break
@@ -338,7 +340,7 @@ class Game():
 
 
 
-    def simpmax(self, node, depth, current_turn, piece, alpha, beta): #There is an error with determining values
+    def simpmax(self, node, depth, current_turn, piece, alpha, beta, minimatrix): #There is an error with determining values
         if depth==0:
             return 0
 
@@ -354,7 +356,7 @@ class Game():
                         child[valid_row][c] = piece
                         if Game().is_gameover(child,valid_row,c,piece)==True:
                             return 100
-                        value = max(value, self.simpmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta))
+                        value = max(value, self.simpmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta,minimatrix))
                         alpha = max(alpha,value)
                     if alpha>=beta:
                         break
@@ -371,7 +373,7 @@ class Game():
                         child[valid_row][c] = piece
                         if Game().is_gameover(child,valid_row,c,piece)==True:
                             return -100
-                        value = min(value, self.simpmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta))
+                        value = min(value, self.simpmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta,minimatrix))
                         beta = min(beta,value)
                     if alpha>=beta:
                         break
@@ -399,12 +401,24 @@ class Player():
         self.winner = False
         self.depth = 1
         self.thinking = False
-
-
+        self.minimatrix = [1,2,5,1000]
+        self.fitness = 0
 
     def determine_preference(self,state,turn,piece,game):
         if self.model=='Human':
             return
+
+        if self.depth==1:
+            minimatrix = [2, 49, 198, 1000]
+
+        elif self.depth==3:
+            minimatrix = [71, 160, 241, 999]
+        
+        elif self.depth==5:
+            minimatrix = [1, 120, 316, 1000]
+
+        else:
+            minimatrix = [0,0,0,0]
 
         node = state.copy()
 
@@ -423,10 +437,10 @@ class Player():
                     valid_row = game.next_open_row(child,c)
                     child[valid_row][c] = piece
                     if game.is_gameover(child,valid_row,c,piece)==True:
-                        current_value = math.inf
+                        current_value = game.evaluate_board(child,game.turn+1,minimatrix)
                     else:
-                        current_value = game.minimax(child,self.depth-1,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf)
-#                    print(f'{c}  {current_value}')
+                        current_value = game.minimax(child,self.depth-1,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf,minimatrix)
+                    # print(f'{c}  {current_value}')                    
                     if current_value>value:
                         value = current_value
                         best_column = []
@@ -437,7 +451,6 @@ class Player():
                         continue
                 else:
                     continue
-            print(' ')
             return best_column[np.random.randint(len(best_column))]
 
 
@@ -452,8 +465,8 @@ class Player():
                     if game.is_gameover(child,valid_row,c,piece)==True:
                         current_value = 100
                     else:
-                        current_value = game.simpmax(child,self.depth+3,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf)
-#                    print(f'{c}  {current_value}')
+                        current_value = game.simpmax(child,self.depth+3,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf,minimatrix)
+                    # print(f'{c}  {current_value}')
                     if current_value>value:
                         value = current_value
                         best_column = []
@@ -464,7 +477,6 @@ class Player():
                         continue
                 else:
                     continue
-            print(' ')
             return best_column[np.random.randint(len(best_column))]
                     
 
@@ -667,8 +679,6 @@ class Text_Editor():
         else:    
             final_list = temp_list[:x] + list(temp_list[x+1]) + list(self.cursor) + temp_list[x+2:]
             return "".join(final_list)
-
-
 
 
 
