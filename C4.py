@@ -2,9 +2,10 @@ import numpy as np
 import pygame
 import math
 import sys
-from C4Backend import Game, Player, Button, Menu_Piece, Cloud, Text_Editor, Key
+from C4Backend import Game, Player, Button, Menu_Piece, Cloud, Text_Editor, Key, Future
 import time
-import asyncio
+import threading
+import copy
 
 
 
@@ -78,6 +79,8 @@ def draw_text(screen,fontsize,x,y,text,color):
 	text = font.render(text,False,color)
 	screen.blit(text,(x,y))
 
+def lag(seconds):
+	time.sleep(seconds)
 
 
 buttons= [
@@ -745,59 +748,73 @@ while game.over==False:
 
 			if game.playerlist[game.turn].human==False:
 
+				if game.playerlist[game.turn].thinking[0]==False:
+					game.playerlist[game.turn].thinking[0] = True
+					AI_thinking = Future(game.playerlist[game.turn].determine_preference,game.board,0,game.turn+1,game)
+
+				if AI_thinking.done==True:
+					game.preferred_choice = AI_thinking()
+					game.playerlist[game.turn].thinking[1] = True
+					AI_thinking.done = False
+				
+				if game.playerlist[game.turn].thinking[1]==True:
+					
+
+					if game.playerlist[game.turn].thinking[2]==False:
+						moving_piece = Future(lag,0.5)
+						game.playerlist[game.turn].thinking[2] = True
 
 
-				while game.valid_move(game.board,game.preferred_choice)==False or game.playerlist[game.turn].thinking==False:
-					game.preferred_choice = game.playerlist[game.turn].determine_preference(game.board,0,game.turn+1,game)
-					game.playerlist[game.turn].thinking = True
-				time.sleep(0.5)
-				if x!=game.preferred_choice:
-					if abs(game.preferred_choice - x)<abs(7-abs(game.preferred_choice - x)):
-						x = (x + np.sign(game.preferred_choice - x))%7
+					if moving_piece.done==True:
+
+						if x!=game.preferred_choice:
+							if abs(game.preferred_choice - x)<abs(7-abs(game.preferred_choice - x)):
+								x = (x + np.sign(game.preferred_choice - x))%7
+								game.playerlist[game.turn].thinking[2] = False
 
 
-					else:
-						x = (x - np.sign(game.preferred_choice - x))%7
+							else:
+								x = (x - np.sign(game.preferred_choice - x))%7
+								game.playerlist[game.turn].thinking[2] = False
 
 
 
-		            
-				elif x==game.preferred_choice:
-					game.playerlist[game.turn].thinking = False
-					valid_row = game.next_open_row(game.board,game.preferred_choice)
-					game.drop_piece(valid_row,game.preferred_choice,game.turn+1)
-					pygame.draw.rect(screen,black,(board_x-1,board_y-1,NUM_COLS*SQUARE_SIZE+2,NUM_ROWS*SQUARE_SIZE+2))
-					pygame.draw.rect(screen,blue,board_dim)					
-					game.draw_board(screen)
-					if game.is_gameover(game.board,valid_row,game.preferred_choice,game.turn+1)==True:
-						draw_text(screen,50,250,0,f'{game.playerlist[game.turn].name} wins!',game.player_colors[game.turn+1])
-						pygame.display.flip()
-						time.sleep(3)
-						if game.score[game.turn]==9:
-							game.score = [0,0]
-							buttons[game.turn+1].buttoncolor = game.player_colors[game.turn+1]
-							buttons[((game.turn+1)%2)+1].buttoncolor = white
-						else:
-							game.score[game.turn] += 1
-						game.board = np.zeros((6,7))
-						game.turn = np.random.randint(0,2)
-						game.display = 'Title'
-						game.board = np.zeros((6,7))
-						game.turn = np.random.randint(0,2)
-						game.display = 'Title'
-						x = 3
-					elif game.is_tie(game.board)==True:
-						game.tie = True
-						draw_text(screen,50,250,0,'It was a tie',black)
-						pygame.display.flip()
-						time.sleep(3)
-						game.board = np.zeros((6,7))
-						game.turn = np.random.randint(0,2)
-						game.display = 'Title'
-						x = 3
-					else:
-						game.playerlist[game.turn].thinking=False
-						game.turn = (game.turn+1)%2
+			            
+						elif x==game.preferred_choice:
+							game.playerlist[game.turn].thinking = [False,False,False]
+							valid_row = game.next_open_row(game.board,game.preferred_choice)
+							game.drop_piece(valid_row,game.preferred_choice,game.turn+1)
+							pygame.draw.rect(screen,black,(board_x-1,board_y-1,NUM_COLS*SQUARE_SIZE+2,NUM_ROWS*SQUARE_SIZE+2))
+							pygame.draw.rect(screen,blue,board_dim)					
+							game.draw_board(screen)
+							if game.is_gameover(game.board,valid_row,game.preferred_choice,game.turn+1)==True:
+								draw_text(screen,50,250,0,f'{game.playerlist[game.turn].name} wins!',game.player_colors[game.turn+1])
+								pygame.display.flip()
+								time.sleep(3)
+								if game.score[game.turn]==9:
+									game.score = [0,0]
+									buttons[game.turn+1].buttoncolor = game.player_colors[game.turn+1]
+									buttons[((game.turn+1)%2)+1].buttoncolor = white
+								else:
+									game.score[game.turn] += 1
+								game.board = np.zeros((6,7))
+								game.turn = np.random.randint(0,2)
+								game.display = 'Title'
+								game.board = np.zeros((6,7))
+								game.turn = np.random.randint(0,2)
+								game.display = 'Title'
+								x = 3
+							elif game.is_tie(game.board)==True:
+								game.tie = True
+								draw_text(screen,50,250,0,'It was a tie',black)
+								pygame.display.flip()
+								time.sleep(3)
+								game.board = np.zeros((6,7))
+								game.turn = np.random.randint(0,2)
+								game.display = 'Title'
+								x = 3
+							else:
+								game.turn = (game.turn+1)%2
 
 
 				
@@ -873,7 +890,7 @@ while game.over==False:
 
 
 
-	clock.tick(60) 
+	clock.tick(20) 
 
 
 

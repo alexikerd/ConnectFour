@@ -2,8 +2,8 @@ from C4Backend import Game, Player
 import numpy as np
 import math
 
-NUM_GAMES = 10
-ITERATIONS = 20
+NUM_GAMES = 20
+ITERATIONS = 25
 NUM_MODELS = 20
 normal_minimatrix = [1,2,5,1000]
 PLAYERDEPTH = 3

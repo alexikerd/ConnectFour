@@ -1,8 +1,12 @@
 import numpy as np
+import pygame
+import math
+import sys
+from C4Backend import Game, Player, Button, Menu_Piece, Cloud, Text_Editor, Key
 import time
 import copy
 import threading
-from C4Backend import Game, Player
+
 
 # http://code.activestate.com/recipes/84317/
 # https://www.youtube.com/watch?v=09_LlHjoEiY
@@ -21,6 +25,7 @@ class Future:
 		self.__T = threading.Thread(target=self.Wrapper,args=(func,param))
 		self.__T.setName("FutureThread")
 		self.__T.start()
+		self.done = False
 
 	def repr(self):
 		return '<Future at '+hex(id(self))+':'+self.__status+'>'
@@ -40,6 +45,7 @@ class Future:
 		except:
 			self.__result="Exception raised within Future"
 		self.__done = True
+		self.done = True
 		self.__status='self.__result'
 		self.__C.notify()
 		self.__C.release()
@@ -48,17 +54,24 @@ class Future:
 
 game = Game()
 
-game.playerlist[0].depth = 5
-game.playerlist[1].depth = 5
 
-A = Future(game.playerlist[game.turn].determine_preference,(game.board,0,game.turn+1,game))
+for player in game.playerlist:
+	player.depth = 5
+	player.model = 'Minimax'
+	player.human = False
+
+A = Future(game.playerlist[game.turn].determine_preference,game.board,0,game.turn+1,game)
+
+
+# This doesn't work
+while A.done==False:
+	time.sleep(3)
+	print('still waiting')
+
 
 print(A())
 
-
-print('done')
-
-
+# print(game.playerlist[game.turn].determine_preference(game.board,0,game.turn+1,game))
 
 
 

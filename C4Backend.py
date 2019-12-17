@@ -3,7 +3,8 @@ import pygame
 import math
 import sys
 import time
-import asyncio
+import threading
+import copy
 
 display_width = 800
 display_height = 600
@@ -400,7 +401,7 @@ class Player():
         self.model = 'Human'
         self.winner = False
         self.depth = 1
-        self.thinking = False
+        self.thinking = [False,False,False]
         self.minimatrix = [1,2,5,1000]
         self.fitness = 0
 
@@ -412,7 +413,7 @@ class Player():
             minimatrix = [2, 49, 198, 1000]
 
         elif self.depth==3:
-            minimatrix = [71, 160, 241, 999]
+            minimatrix = [20, 160, 241, 999]
         
         elif self.depth==5:
             minimatrix = [1, 120, 316, 1000]
@@ -425,7 +426,10 @@ class Player():
         current_turn = 0
 
         if self.model=='Random':
-            return np.random.randint(0,state.shape[1])
+            choice = np.random.randint(0,state.shape[1])
+            while game.valid_move(state,choice)==False:
+                choice = np.random.randint(0,state.shape[1])
+            return choice
 
         if self.model=='Minimax':
             value = -math.inf
@@ -437,7 +441,7 @@ class Player():
                     valid_row = game.next_open_row(child,c)
                     child[valid_row][c] = piece
                     if game.is_gameover(child,valid_row,c,piece)==True:
-                        current_value = game.evaluate_board(child,game.turn+1,minimatrix)
+                        current_value = math.inf
                     else:
                         current_value = game.minimax(child,self.depth-1,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf,minimatrix)
                     # print(f'{c}  {current_value}')                    
@@ -624,7 +628,7 @@ class Key():
 
 class Cloud():
     def __init__(self):
-        self.velocity = -1/3
+        self.velocity = -1
         self.x = display_width + 50
         self.y = np.random.randint(-int(display_height/4),int(display_height*7/24))
         self.width = np.random.randint(int(display_width/8),int(display_width/2))
@@ -681,5 +685,39 @@ class Text_Editor():
             return "".join(final_list)
 
 
+
+class Future:
+    def __init__(self,func,*param):
+        self.__done = False
+        self.__result = None
+        self.__status = 'working'
+        self.__C = threading.Condition()
+        self.__T = threading.Thread(target=self.Wrapper,args=(func,param))
+        self.__T.setName("FutureThread")
+        self.__T.start()
+        self.done = False
+
+    def repr(self):
+        return '<Future at '+hex(id(self))+':'+self.__status+'>'
+
+    def __call__(self):
+        self.__C.acquire()
+        while self.__done==False:
+            self.__C.wait()
+        self.__C.release()
+        a=copy.deepcopy(self.__result)
+        return a
+
+    def Wrapper(self,func,param):
+        self.__C.acquire()
+        try:
+            self.__result=func(*param)
+        except:
+            self.__result="Exception raised within Future"
+        self.__done = True
+        self.done = True
+        self.__status='self.__result'
+        self.__C.notify()
+        self.__C.release()
 
 
