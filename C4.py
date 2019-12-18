@@ -81,6 +81,7 @@ def draw_text(screen,fontsize,x,y,text,color):
 
 def lag(seconds):
 	time.sleep(seconds)
+	return True
 
 
 buttons= [
@@ -720,7 +721,7 @@ while game.over==False:
 
 		elif game.display=='Game':
 
-
+			# print(game.playerlist[game.turn].thinking)
 
 			if np.random.randint(0,1000)==0:
 				clouds.append(Cloud())
@@ -752,25 +753,27 @@ while game.over==False:
 					game.playerlist[game.turn].thinking[0] = True
 					AI_thinking = Future(game.playerlist[game.turn].determine_preference,game.board,0,game.turn+1,game)
 
-				if AI_thinking.done==True:
+				if AI_thinking.isdone()==True:
 					game.preferred_choice = AI_thinking()
 					game.playerlist[game.turn].thinking[1] = True
-					AI_thinking.done = False
-				
+
+
+
 				if game.playerlist[game.turn].thinking[1]==True:
-					
+
 
 					if game.playerlist[game.turn].thinking[2]==False:
 						moving_piece = Future(lag,0.5)
 						game.playerlist[game.turn].thinking[2] = True
 
+					if moving_piece.isdone()==True:
 
-					if moving_piece.done==True:
 
 						if x!=game.preferred_choice:
 							if abs(game.preferred_choice - x)<abs(7-abs(game.preferred_choice - x)):
 								x = (x + np.sign(game.preferred_choice - x))%7
 								game.playerlist[game.turn].thinking[2] = False
+
 
 
 							else:
@@ -804,6 +807,7 @@ while game.over==False:
 								game.turn = np.random.randint(0,2)
 								game.display = 'Title'
 								x = 3
+								game.preferred_choice = None
 							elif game.is_tie(game.board)==True:
 								game.tie = True
 								draw_text(screen,50,250,0,'It was a tie',black)
@@ -813,7 +817,9 @@ while game.over==False:
 								game.turn = np.random.randint(0,2)
 								game.display = 'Title'
 								x = 3
+								game.preferred_choice = None
 							else:
+								game.preferred_choice = None
 								game.turn = (game.turn+1)%2
 
 
@@ -888,11 +894,9 @@ while game.over==False:
 			pygame.event.post(pygame.event.Event(4))
 
 
-
+	# print(game.playerlist[game.turn].thinking)
 
 	clock.tick(20) 
-
-
 
 
 

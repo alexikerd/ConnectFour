@@ -24,7 +24,7 @@ class Game():
         self.boardx = 137.5
         self.boardy = 75
         self.turn = np.random.randint(0,2)
-        self.preferred_choice = 4
+        self.preferred_choice = None
         self.display = 'Title'
         self.startcheck = [False,False]
         self.editor = 0
@@ -341,12 +341,20 @@ class Game():
 
 
 
-    def simpmax(self, node, depth, current_turn, piece, alpha, beta, minimatrix): #There is an error with determining values
+    def simpmax(self, node, depth, current_turn, piece, alpha, beta):
         if depth==0:
-            return 0
+            array_yp, array_yo = np.asarray(np.where(node==piece))[0,:], np.asarray(np.where(node==((piece%2)+1)))[0,:]
+            array_xp, array_xo = np.asarray(np.where(node==piece))[1,:], np.asarray(np.where(node==((piece%2)+1)))[1,:]
+            mean_yp, mean_yo = np.mean(array_yp), np.mean(array_yo)
+            mean_xp, mean_xo = np.mean(array_xp), np.mean(array_xo)
+            error_yp, error_yo = np.sum((array_yp-mean_yp)**2), np.sum((array_yo-mean_yo)**2)
+            error_xp, error_xo = np.sum((array_xp-mean_xp)**2), np.sum((array_xo-mean_xo)**2)
+            value = -1 * (error_yp + error_xp)/len(array_yp) + (error_yo + error_xo)/len(array_yo)
+            return value
 
         elif self.is_tie(node)==True:
             return 0
+
         else:
             if current_turn==0: #maximizing
                 value = -math.inf
@@ -357,7 +365,7 @@ class Game():
                         child[valid_row][c] = piece
                         if Game().is_gameover(child,valid_row,c,piece)==True:
                             return 100
-                        value = max(value, self.simpmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta,minimatrix))
+                        value = max(value, self.simpmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta))
                         alpha = max(alpha,value)
                     if alpha>=beta:
                         break
@@ -374,13 +382,51 @@ class Game():
                         child[valid_row][c] = piece
                         if Game().is_gameover(child,valid_row,c,piece)==True:
                             return -100
-                        value = min(value, self.simpmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta,minimatrix))
+                        value = min(value, self.simpmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta))
                         beta = min(beta,value)
                     if alpha>=beta:
                         break
                 return value
 
+    def randmax(self, node, depth, current_turn, piece, alpha, beta):
+        if depth==0:
+            return 0
 
+        elif self.is_tie(node)==True:
+            return 0
+
+        else:
+            if current_turn==0: #maximizing
+                value = -math.inf
+                for c in range(node.shape[1]):
+                    if node[0][c]==0:
+                        child = node.copy()
+                        valid_row = Game().next_open_row(node,c)
+                        child[valid_row][c] = piece
+                        if Game().is_gameover(child,valid_row,c,piece)==True:
+                            return 100
+                        value = max(value, self.randmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta))
+                        alpha = max(alpha,value)
+                    if alpha>=beta:
+                        break
+                return value
+
+
+
+            else: #minimizing
+                value = math.inf
+                for c in range(node.shape[1]):
+                    if node[0][c]==0:
+                        child = node.copy()
+                        valid_row = Game().next_open_row(node,c)
+                        child[valid_row][c] = piece
+                        if Game().is_gameover(child,valid_row,c,piece)==True:
+                            return -100
+                        value = min(value, self.randmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta))
+                        beta = min(beta,value)
+                    if alpha>=beta:
+                        break
+                return value
  
 
 
@@ -426,10 +472,29 @@ class Player():
         current_turn = 0
 
         if self.model=='Random':
-            choice = np.random.randint(0,state.shape[1])
-            while game.valid_move(state,choice)==False:
-                choice = np.random.randint(0,state.shape[1])
-            return choice
+            value = -math.inf
+            best_column = []
+            for c in range(state.shape[1]):
+                if game.valid_move(node,c)==True:
+                    child = node.copy()
+                    valid_row = game.next_open_row(child,c)
+                    child[valid_row][c] = piece
+                    if game.is_gameover(child,valid_row,c,piece)==True:
+                        current_value = math.inf
+                    else:
+                        current_value = game.randmax(child,self.depth+3,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf)
+                    # print(f'{c}  {current_value}')
+                    if current_value>value:
+                        value = current_value
+                        best_column = []
+                        best_column.append(c)
+                    elif current_value==value:
+                        best_column.append(c)
+                    else:
+                        continue
+                else:
+                    continue
+            return best_column[np.random.randint(len(best_column))]
 
         if self.model=='Minimax':
             value = -math.inf
@@ -458,7 +523,7 @@ class Player():
             return best_column[np.random.randint(len(best_column))]
 
 
-        if self.model=='Simplemax':
+        if self.model=='Simplemax': #problem with alpha beta pruning of simplemax
             value = -math.inf
             best_column = []
             for c in range(state.shape[1]):
@@ -467,9 +532,9 @@ class Player():
                     valid_row = game.next_open_row(child,c)
                     child[valid_row][c] = piece
                     if game.is_gameover(child,valid_row,c,piece)==True:
-                        current_value = 100
+                        current_value = math.inf
                     else:
-                        current_value = game.simpmax(child,self.depth+3,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf,minimatrix)
+                        current_value = game.simpmax(child,self.depth,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf)
                     # print(f'{c}  {current_value}')
                     if current_value>value:
                         value = current_value
@@ -695,7 +760,6 @@ class Future:
         self.__T = threading.Thread(target=self.Wrapper,args=(func,param))
         self.__T.setName("FutureThread")
         self.__T.start()
-        self.done = False
 
     def repr(self):
         return '<Future at '+hex(id(self))+':'+self.__status+'>'
@@ -704,6 +768,7 @@ class Future:
         self.__C.acquire()
         while self.__done==False:
             self.__C.wait()
+            return None
         self.__C.release()
         a=copy.deepcopy(self.__result)
         return a
@@ -715,9 +780,17 @@ class Future:
         except:
             self.__result="Exception raised within Future"
         self.__done = True
-        self.done = True
         self.__status='self.__result'
         self.__C.notify()
         self.__C.release()
+
+    def isdone(self):
+        return self.__done
+
+        
+
+
+
+
 
 
