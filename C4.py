@@ -748,13 +748,14 @@ while game.over==False:
 
 
 			if game.playerlist[game.turn].human==False:
-
 				if game.playerlist[game.turn].thinking[0]==False:
 					game.playerlist[game.turn].thinking[0] = True
-					AI_thinking = Future(game.playerlist[game.turn].determine_preference,game.board,0,game.turn+1,game)
+					AI_thinking = Future(game.determine_preference)
+
 
 				if AI_thinking.isdone()==True:
 					game.preferred_choice = AI_thinking()
+
 					game.playerlist[game.turn].thinking[1] = True
 
 
@@ -889,6 +890,7 @@ while game.over==False:
 
 			pygame.display.flip()
 			pygame.display.update()
+
 
 		if pygame.event.peek().type==0:
 			pygame.event.post(pygame.event.Event(4))

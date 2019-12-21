@@ -313,9 +313,9 @@ class Game():
 
                     if node[0][c]==0:
                         child = node.copy()
-                        valid_row = Game().next_open_row(node,c)
+                        valid_row = self.next_open_row(node,c)
                         child[valid_row][c] = piece
-                        if Game().is_gameover(child,valid_row,c,piece)==True:
+                        if self.is_gameover(child,valid_row,c,piece)==True:
                             return self.evaluate_board(child,(self.turn)+1,minimatrix)
                         value = max(value, self.minimax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta,minimatrix))
                         alpha = max(alpha,value)
@@ -329,9 +329,9 @@ class Game():
                 for c in range(node.shape[1]):
                     if node[0][c]==0:
                         child = node.copy()
-                        valid_row = Game().next_open_row(node,c)
+                        valid_row = self.next_open_row(node,c)
                         child[valid_row][c] = piece
-                        if Game().is_gameover(child,valid_row,c,piece)==True:
+                        if self.is_gameover(child,valid_row,c,piece)==True:
                             return self.evaluate_board(child,(self.turn)+1,minimatrix)
                         value = min(value, self.minimax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta,minimatrix))
                         beta = min(beta,value)
@@ -361,9 +361,9 @@ class Game():
                 for c in range(node.shape[1]):
                     if node[0][c]==0:
                         child = node.copy()
-                        valid_row = Game().next_open_row(node,c)
+                        valid_row = self.next_open_row(node,c)
                         child[valid_row][c] = piece
-                        if Game().is_gameover(child,valid_row,c,piece)==True:
+                        if self.is_gameover(child,valid_row,c,piece)==True:
                             return 100
                         value = max(value, self.simpmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta))
                         alpha = max(alpha,value)
@@ -378,9 +378,9 @@ class Game():
                 for c in range(node.shape[1]):
                     if node[0][c]==0:
                         child = node.copy()
-                        valid_row = Game().next_open_row(node,c)
+                        valid_row = self.next_open_row(node,c)
                         child[valid_row][c] = piece
-                        if Game().is_gameover(child,valid_row,c,piece)==True:
+                        if self.is_gameover(child,valid_row,c,piece)==True:
                             return -100
                         value = min(value, self.simpmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta))
                         beta = min(beta,value)
@@ -401,9 +401,9 @@ class Game():
                 for c in range(node.shape[1]):
                     if node[0][c]==0:
                         child = node.copy()
-                        valid_row = Game().next_open_row(node,c)
+                        valid_row = self.next_open_row(node,c)
                         child[valid_row][c] = piece
-                        if Game().is_gameover(child,valid_row,c,piece)==True:
+                        if self.is_gameover(child,valid_row,c,piece)==True:
                             return 100
                         value = max(value, self.randmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta))
                         alpha = max(alpha,value)
@@ -418,9 +418,9 @@ class Game():
                 for c in range(node.shape[1]):
                     if node[0][c]==0:
                         child = node.copy()
-                        valid_row = Game().next_open_row(node,c)
+                        valid_row = self.next_open_row(node,c)
                         child[valid_row][c] = piece
-                        if Game().is_gameover(child,valid_row,c,piece)==True:
+                        if self.is_gameover(child,valid_row,c,piece)==True:
                             return -100
                         value = min(value, self.randmax(child, depth-1, (current_turn+1)%2,(piece)%2+1,alpha,beta))
                         beta = min(beta,value)
@@ -432,9 +432,103 @@ class Game():
 
 
 
+    def determine_preference(self):
+        if self.playerlist[self.turn].model=='Human':
+            return
+
+        if self.playerlist[self.turn].depth==1:
+            minimatrix = [2, 49, 198, 1000]
+
+        elif self.playerlist[self.turn].depth==3:
+            minimatrix = [20, 160, 241, 999]
+        
+        elif self.playerlist[self.turn].depth==5:
+            minimatrix = [1, 120, 316, 1000]
+
+        else:
+            minimatrix = [0,0,0,0]
+
+        node = self.board.copy()
+
+        current_turn = 0
+        piece = self.turn+1
+
+        if self.playerlist[self.turn].model=='Random':
+            value = -math.inf
+            best_column = []
+            for c in range(self.board.shape[1]):
+                if self.valid_move(node,c)==True:
+                    child = node.copy()
+                    valid_row = self.next_open_row(child,c)
+                    child[valid_row][c] = piece
+                    if self.is_gameover(child,valid_row,c,piece)==True:
+                        current_value = math.inf
+                    else:
+                        current_value = self.randmax(child,self.playerlist[self.turn].depth+3,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf)
+                    # print(f'{c}  {current_value}')
+                    if current_value>value:
+                        value = current_value
+                        best_column = []
+                        best_column.append(c)
+                    elif current_value==value:
+                        best_column.append(c)
+                    else:
+                        continue
+                else:
+                    continue
+            return best_column[np.random.randint(len(best_column))]
+
+        if self.playerlist[self.turn].model=='Minimax':
+            value = -math.inf
+            best_column = []
+            for c in range(self.board.shape[1]):
+                if self.valid_move(node,c)==True:
+
+                    child = node.copy()
+                    valid_row = self.next_open_row(child,c)
+                    child[valid_row][c] = piece
+                    if self.is_gameover(child,valid_row,c,piece)==True:
+                        current_value = math.inf
+                    else:
+                        current_value = self.minimax(child,self.playerlist[self.turn].depth-1,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf,minimatrix)
+                    # print(f'{c}  {current_value}')                    
+                    if current_value>value:
+                        value = current_value
+                        best_column = []
+                        best_column.append(c)
+                    elif current_value==value:
+                        best_column.append(c)
+                    else:
+                        continue
+                else:
+                    continue
+            return best_column[np.random.randint(len(best_column))]
 
 
-
+        if self.playerlist[self.turn].model=='Simplemax':
+            value = -math.inf
+            best_column = []
+            for c in range(self.board.shape[1]):
+                if self.valid_move(node,c)==True:
+                    child = node.copy()
+                    valid_row = self.next_open_row(child,c)
+                    child[valid_row][c] = piece
+                    if self.is_gameover(child,valid_row,c,piece)==True:
+                        current_value = math.inf
+                    else:
+                        current_value = self.simpmax(child,self.playerlist[self.turn].depth,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf)
+                    # print(f'{c}  {current_value}')
+                    if current_value>value:
+                        value = current_value
+                        best_column = []
+                        best_column.append(c)
+                    elif current_value==value:
+                        best_column.append(c)
+                    else:
+                        continue
+                else:
+                    continue
+            return best_column[np.random.randint(len(best_column))]
 
 
 
@@ -451,102 +545,102 @@ class Player():
         self.minimatrix = [1,2,5,1000]
         self.fitness = 0
 
-    def determine_preference(self,state,turn,piece,game):
-        if self.model=='Human':
-            return
+    # def determine_preference(self,state,turn,piece,game):
+    #     if self.model=='Human':
+    #         return
 
-        if self.depth==1:
-            minimatrix = [2, 49, 198, 1000]
+    #     if self.depth==1:
+    #         minimatrix = [2, 49, 198, 1000]
 
-        elif self.depth==3:
-            minimatrix = [20, 160, 241, 999]
+    #     elif self.depth==3:
+    #         minimatrix = [20, 160, 241, 999]
         
-        elif self.depth==5:
-            minimatrix = [1, 120, 316, 1000]
+    #     elif self.depth==5:
+    #         minimatrix = [1, 120, 316, 1000]
 
-        else:
-            minimatrix = [0,0,0,0]
+    #     else:
+    #         minimatrix = [0,0,0,0]
 
-        node = state.copy()
+    #     node = state.copy()
 
-        current_turn = 0
+    #     current_turn = 0
 
-        if self.model=='Random':
-            value = -math.inf
-            best_column = []
-            for c in range(state.shape[1]):
-                if game.valid_move(node,c)==True:
-                    child = node.copy()
-                    valid_row = game.next_open_row(child,c)
-                    child[valid_row][c] = piece
-                    if game.is_gameover(child,valid_row,c,piece)==True:
-                        current_value = math.inf
-                    else:
-                        current_value = game.randmax(child,self.depth+3,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf)
-                    # print(f'{c}  {current_value}')
-                    if current_value>value:
-                        value = current_value
-                        best_column = []
-                        best_column.append(c)
-                    elif current_value==value:
-                        best_column.append(c)
-                    else:
-                        continue
-                else:
-                    continue
-            return best_column[np.random.randint(len(best_column))]
+    #     if self.model=='Random':
+    #         value = -math.inf
+    #         best_column = []
+    #         for c in range(state.shape[1]):
+    #             if game.valid_move(node,c)==True:
+    #                 child = node.copy()
+    #                 valid_row = game.next_open_row(child,c)
+    #                 child[valid_row][c] = piece
+    #                 if game.is_gameover(child,valid_row,c,piece)==True:
+    #                     current_value = math.inf
+    #                 else:
+    #                     current_value = game.randmax(child,self.depth+3,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf)
+    #                 # print(f'{c}  {current_value}')
+    #                 if current_value>value:
+    #                     value = current_value
+    #                     best_column = []
+    #                     best_column.append(c)
+    #                 elif current_value==value:
+    #                     best_column.append(c)
+    #                 else:
+    #                     continue
+    #             else:
+    #                 continue
+    #         return best_column[np.random.randint(len(best_column))]
 
-        if self.model=='Minimax':
-            value = -math.inf
-            best_column = []
-            for c in range(state.shape[1]):
-                if game.valid_move(node,c)==True:
+    #     if self.model=='Minimax':
+    #         value = -math.inf
+    #         best_column = []
+    #         for c in range(state.shape[1]):
+    #             if game.valid_move(node,c)==True:
 
-                    child = node.copy()
-                    valid_row = game.next_open_row(child,c)
-                    child[valid_row][c] = piece
-                    if game.is_gameover(child,valid_row,c,piece)==True:
-                        current_value = math.inf
-                    else:
-                        current_value = game.minimax(child,self.depth-1,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf,minimatrix)
-                    # print(f'{c}  {current_value}')                    
-                    if current_value>value:
-                        value = current_value
-                        best_column = []
-                        best_column.append(c)
-                    elif current_value==value:
-                        best_column.append(c)
-                    else:
-                        continue
-                else:
-                    continue
-            return best_column[np.random.randint(len(best_column))]
+    #                 child = node.copy()
+    #                 valid_row = game.next_open_row(child,c)
+    #                 child[valid_row][c] = piece
+    #                 if game.is_gameover(child,valid_row,c,piece)==True:
+    #                     current_value = math.inf
+    #                 else:
+    #                     current_value = game.minimax(child,self.depth-1,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf,minimatrix)
+    #                 # print(f'{c}  {current_value}')                    
+    #                 if current_value>value:
+    #                     value = current_value
+    #                     best_column = []
+    #                     best_column.append(c)
+    #                 elif current_value==value:
+    #                     best_column.append(c)
+    #                 else:
+    #                     continue
+    #             else:
+    #                 continue
+    #         return best_column[np.random.randint(len(best_column))]
 
 
-        if self.model=='Simplemax': #problem with alpha beta pruning of simplemax
-            value = -math.inf
-            best_column = []
-            for c in range(state.shape[1]):
-                if game.valid_move(node,c)==True:
-                    child = node.copy()
-                    valid_row = game.next_open_row(child,c)
-                    child[valid_row][c] = piece
-                    if game.is_gameover(child,valid_row,c,piece)==True:
-                        current_value = math.inf
-                    else:
-                        current_value = game.simpmax(child,self.depth,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf)
-                    # print(f'{c}  {current_value}')
-                    if current_value>value:
-                        value = current_value
-                        best_column = []
-                        best_column.append(c)
-                    elif current_value==value:
-                        best_column.append(c)
-                    else:
-                        continue
-                else:
-                    continue
-            return best_column[np.random.randint(len(best_column))]
+    #     if self.model=='Simplemax': 
+    #         value = -math.inf
+    #         best_column = []
+    #         for c in range(state.shape[1]):
+    #             if game.valid_move(node,c)==True:
+    #                 child = node.copy()
+    #                 valid_row = game.next_open_row(child,c)
+    #                 child[valid_row][c] = piece
+    #                 if game.is_gameover(child,valid_row,c,piece)==True:
+    #                     current_value = math.inf
+    #                 else:
+    #                     current_value = game.simpmax(child,self.depth,(current_turn+1)%2,(piece)%2+1,-math.inf,math.inf)
+    #                 # print(f'{c}  {current_value}')
+    #                 if current_value>value:
+    #                     value = current_value
+    #                     best_column = []
+    #                     best_column.append(c)
+    #                 elif current_value==value:
+    #                     best_column.append(c)
+    #                 else:
+    #                     continue
+    #             else:
+    #                 continue
+    #         return best_column[np.random.randint(len(best_column))]
                     
 
 
@@ -790,7 +884,13 @@ class Future:
         
 
 
+# game = Game()
+# game.turn = 1
+# game.playerlist[1].model = 'Random'
+# game.playerlist[1].depth = 3
+# game.playerlist[1].human = False
 
+# print(game.determine_preference())
 
 
 
