@@ -5,9 +5,12 @@ import sys
 import time
 import threading
 import copy
+import cv2
+import torch
 
 display_width = 800
 display_height = 600
+IMG_SIZE = 28
 
 
 
@@ -30,6 +33,7 @@ class Game():
         self.editor = 0
         self.editingtext = False
         self.score = [0,0]
+
 
      
     def valid_move(self,state,column):
@@ -139,11 +143,37 @@ class Game():
         self.board[row][column] = piece
 
 
-    def draw_board(self,screen):
-        for r in range(self.board.shape[0]):
-            for c in range(self.board.shape[1]):
-                pygame.draw.circle(screen,(0,0,0),((int(c*self.squaresize+self.boardx + self.squaresize*0.5)),(int(int(r)*self.squaresize + self.boardy + self.squaresize*0.5))),int(self.squaresize*0.4+1))
-                pygame.draw.circle(screen,self.player_colors[int(self.board[r][c])],((int(c*self.squaresize+self.boardx + self.squaresize*0.5)),(int(int(r)*self.squaresize + self.boardy + self.squaresize*0.5))),int(self.squaresize*0.4))
+    def draw_board(self,screen,agent,board):
+        for r in range(board.shape[0]):
+            for c in range(board.shape[1]):
+                
+                if agent:
+                    pygame.draw.circle(screen,(0,0,0),((int(c*self.squaresize+self.boardx + self.squaresize*0.5)),(int(int(r)*self.squaresize + self.boardy + self.squaresize*0.5))),int(self.squaresize*0.4+1))
+                    if self.turn+1==board[r][c]:
+                        pygame.draw.circle(screen,(255,64,64),((int(c*self.squaresize+self.boardx + self.squaresize*0.5)),(int(int(r)*self.squaresize + self.boardy + self.squaresize*0.5))),int(self.squaresize*0.4))
+                    elif board[r][c]!=0:
+                        pygame.draw.circle(screen,(255,215,0),((int(c*self.squaresize+self.boardx + self.squaresize*0.5)),(int(int(r)*self.squaresize + self.boardy + self.squaresize*0.5))),int(self.squaresize*0.4))
+
+
+                else:
+                    pygame.draw.circle(screen,(0,0,0),((int(c*self.squaresize+self.boardx + self.squaresize*0.5)),(int(int(r)*self.squaresize + self.boardy + self.squaresize*0.5))),int(self.squaresize*0.4+1))
+                    pygame.draw.circle(screen,self.player_colors[int(board[r][c])],((int(c*self.squaresize+self.boardx + self.squaresize*0.5)),(int(int(r)*self.squaresize + self.boardy + self.squaresize*0.5))),int(self.squaresize*0.4))
+
+
+
+    def render_vision(self,screen):
+
+        aeyes = screen.copy()
+        self.draw_board(aeyes,True,self.board)
+        image = pygame.surfarray.array3d(aeyes)
+        image = np.moveaxis(image,0,1)
+        image = image[int(74):int(76+6*75),int(136.5):int(138.5+7*75)]
+        image = cv2.resize(image,(IMG_SIZE,IMG_SIZE))
+        image = np.moveaxis(image,-1,0)
+        image = torch.tensor(image)
+
+        return image
+
 
 
     def player_choice(self,screen,x,y):

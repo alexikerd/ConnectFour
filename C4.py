@@ -790,7 +790,7 @@ while game.over==False:
 							game.drop_piece(valid_row,game.preferred_choice,game.turn+1)
 							pygame.draw.rect(screen,black,(board_x-1,board_y-1,NUM_COLS*SQUARE_SIZE+2,NUM_ROWS*SQUARE_SIZE+2))
 							pygame.draw.rect(screen,blue,board_dim)					
-							game.draw_board(screen)
+							game.draw_board(screen,False,game.board)
 							if game.is_gameover(game.board,valid_row,game.preferred_choice,game.turn+1)==True:
 								draw_text(screen,50,250,0,f'{game.playerlist[game.turn].name} wins!',game.player_colors[game.turn+1])
 								pygame.display.flip()
@@ -842,7 +842,7 @@ while game.over==False:
 						game.drop_piece(valid_row,choice,game.turn+1)
 						pygame.draw.rect(screen,black,(board_x-1,board_y-1,NUM_COLS*SQUARE_SIZE+2,NUM_ROWS*SQUARE_SIZE+2))
 						pygame.draw.rect(screen,blue,board_dim)
-						game.draw_board(screen)
+						game.draw_board(screen,False,game.board)
 						if game.is_gameover(game.board,valid_row,choice,game.turn+1)==True:
 							draw_text(screen,50,250,0,f'{game.playerlist[game.turn].name} wins!',game.player_colors[game.turn+1])
 							pygame.display.flip()
@@ -878,7 +878,7 @@ while game.over==False:
 
 			pygame.draw.rect(screen,black,(board_x-1,board_y-1,NUM_COLS*SQUARE_SIZE+2,NUM_ROWS*SQUARE_SIZE+2))
 			pygame.draw.rect(screen,blue,board_dim)
-			game.draw_board(screen)
+			game.draw_board(screen,False,game.board)
 
 
 			if game.over==False:
