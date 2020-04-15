@@ -105,7 +105,8 @@ class MCTS():
 
         if s not in self.Ps:
             with torch.no_grad():
-                self.Ps[s],v = self.nnet.predict(vision)
+                output_pi, output_v = self.nnet.predict(vision)
+                self.Ps[s],v = output_pi.numpy()[0], output_v.numpy()[0]
 
 
             valids = np.zeros((7))
@@ -157,7 +158,7 @@ class MCTS():
             next_game.tie = True
             next_game.over = True
 
-        game.turn = (game.turn + 1)%2
+        next_game.turn = (next_game.turn + 1)%2
 
         v = self.explore(next_game)
 

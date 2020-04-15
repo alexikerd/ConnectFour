@@ -34,7 +34,11 @@ class Game():
         self.editingtext = False
         self.score = [0,0]
 
-
+    def reset(self):
+        self.board = np.zeros((6,7))
+        self.turn = np.random.randint(0,2)
+        self.over = False
+        self.tie = False
      
     def valid_move(self,state,column):
         return state[0][column]==0

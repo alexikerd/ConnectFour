@@ -1,0 +1,28 @@
+while True:
+
+	play 25,000 games
+	
+		for each move, the gamestate, action probabilities, and result is stored
+
+	
+
+	after 25,000 games, begin training loop
+		
+		randomly samples 2048 moves from last 500,000 moves
+
+		v is the value approximator, and it is weighed against 1 for win, -1 for loss and 0 for tie
+		pi is policy vector, it was weighed against get_action_probabilities
+
+
+
+
+
+	after 1,000 training loops, self play
+
+		400 games between 'best' player and current player
+		if wr for current >= 55%, replace best with current
+
+
+
+
+
