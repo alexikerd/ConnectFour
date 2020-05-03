@@ -14,22 +14,25 @@ import pickle
 
 import torch
 from torch.utils.data import Dataset, DataLoader
+import torch.nn.functional as F
 
 
 from C4Backend import Game, Player
 from C4Net import C4Net, ImageDataset
 from MCTS import MCTS
 
-
+#6:08
 
 MIN_GAMES = 100
 MAX_MEM_LEN = 10000
-MIN_TRAINS = 10
-BATCH_SIZE = 256
-MINIBATCH_SIZE = 64
+MIN_TRAINS = 5
+BATCH_SIZE = 512
+MINIBATCH_SIZE = 16
 EVAL_GAMES = 40
 WATCH_MOVES = False
 CURRENT_DIR = path.abspath(path.curdir)
+
+
 
 
 pygame.init()
@@ -60,15 +63,24 @@ screen.blit(background,(0,0))
 screen.blit(table,(0,int(display_height*0.55)))
 
 
+
+
 agent = C4Net()
 best_player = C4Net()
+
+agent_mcts = MCTS(agent,screen)
+best_mcts = MCTS(best_player,screen)
+
+# agent.to(agent.device)
+# best_player.to(best_player.device)
+
 
 latest_version = np.max(np.array([int(model.split(' ')[1]) for model in os.listdir(CURRENT_DIR + '/Models/Versions/')]))
 
 if latest_version==0:
     torch.save(best_player.state_dict(),CURRENT_DIR + f'/Models/Best Model')
 
-agent.load_state_dict(torch.load(CURRENT_DIR + f'/Models/Versions/Model {latest_version}'))
+agent.load_state_dict(torch.load(CURRENT_DIR + f'/Models/Best Model'))
 best_player.load_state_dict(torch.load(CURRENT_DIR + '/Models/Best Model'))
 
 
@@ -94,8 +106,8 @@ while training:
     while not game.over:
 
 
-        mcts = MCTS(agent,game,screen,100)
-        pi = mcts.get_action_prop()
+
+        pi = agent_mcts.get_action_prop(game,49)
         action = np.random.choice(7,p=pi)
         pi = torch.tensor(pi)
         row = game.next_open_row(game.board,action)
@@ -112,7 +124,7 @@ while training:
             
             for x in trainexamples:
                 memory.append([x[0],x[2],(-1)**(x[1]!=game.turn)])
-            # memory.append([(x[0],x[2],(-1)**(x[1]!=game.turn)) for x in trainexamples])
+
 
 
         elif game.is_tie(game.board):
@@ -128,7 +140,7 @@ while training:
 
     if game_counter%MIN_GAMES==0:
 
-        # print('train network')
+        optimizer = torch.optim.Adam(agent_mcts.nnet.parameters(),lr=0.0001)
 
         batch = random.sample(list(memory),BATCH_SIZE)
 
@@ -143,22 +155,24 @@ while training:
         for data in dataloader:
 
             input_vision, target_pi, target_v = data
-            output_pi, output_v = agent.predict(input_vision.float())
+            # input_vision = input_vision.float().to(agent.device)
+            # target_pi = target_pi.to(agent.device)
+            # target_v = target_v.to(agent.device)
 
+            
+            output_pi, output_v = agent_mcts.nnet.predict(input_vision.float())
 
-            l_pi = torch.sum(output_pi*target_pi)/target_pi.size()[0]
+            l_pi = -torch.sum(output_pi*target_pi)/target_pi.size()[0]
             l_v = torch.sum((target_v-output_v.view(-1))**2)/target_v.size()[0]
             total_loss = l_pi + l_v
-
-            print(f'loss was {total_loss}')
-
-            optimizer = torch.optim.Adam(agent.parameters())
 
 
             optimizer.zero_grad()
             total_loss.backward()
             optimizer.step()
 
+
+        agent_mcts.reset()
 
         train_counter += 1
 
@@ -170,6 +184,7 @@ while training:
             best_player_wins = 0
             agent_wins = 0
 
+
             for g in range(EVAL_GAMES):
 
                 game = Game()
@@ -179,11 +194,10 @@ while training:
                 while not game.over:
 
                     if game.turn==0:
-                        mcts = MCTS(best_player,game,screen,100)
+                        pi = best_mcts.get_action_prop(game,100)
                     else:
-                        mcts = MCTS(agent,game,screen,100)
+                        pi = agent_mcts.get_action_prop(game,100)
 
-                    pi = mcts.get_action_prop()
                     action = np.argmax(pi)
                     pi = torch.tensor(pi)
                     row = game.next_open_row(game.board,action)
@@ -205,7 +219,9 @@ while training:
 
 
                     else:
-                        game.turn = (game.turn+1)%2                
+                        game.turn = (game.turn+1)%2   
+
+                print(f'eval game {g+1} played')             
 
             win_percent = (agent_wins)/(agent_wins + best_player_wins)
 
@@ -213,14 +229,16 @@ while training:
 
             if win_percent>=0.55:
 
-                torch.save(best_player.state_dict(),CURRENT_DIR + f'/Models/Versions/Model {model_counter}')
-                torch.save(agent.state_dict(),CURRENT_DIR + f'/Models/Best Model')
+                torch.save(best_mcts.nnet.state_dict(),CURRENT_DIR + f'/Models/Versions/Model {model_counter}')
+                torch.save(agent_mcts.nnet.state_dict(),CURRENT_DIR + f'/Models/Best Model')
+
+                best_mcts.nnet.load_state_dict(torch.load(CURRENT_DIR + '/Models/Best Model'))
+                agent_mcts.nnet.load_state_dict(torch.load(CURRENT_DIR + '/Models/Best Model'))
+                
+                best_mcts.reset()
+                agent_mcts.reset()
 
                 model_counter += 1
             
             else:
                 pass
-        
-
-    
-

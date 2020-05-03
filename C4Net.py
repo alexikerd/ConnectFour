@@ -31,7 +31,7 @@ img_transform = transforms.Compose([
 
 class ImageDataset(Dataset):
 
-    def __init__(self,data,transform=img_transform):
+    def __init__(self,data,transform=None):
         self.data = data
         self.transform = transform
         
@@ -43,13 +43,12 @@ class ImageDataset(Dataset):
         if torch.is_tensor(index):
             index = index.tolist()
 
-        item = self.data.iloc[index]["board"]
-        image = item/255
+        item = self.data[index]
         
         if self.transform:
             image = self.transform(image)
         
-        return image
+        return item[0],item[1],item[2]
 
 
 
@@ -75,6 +74,8 @@ class C4Net(nn.Module):
         self.fc4 = nn.Linear(100,7)
         self.fc5 = nn.Linear(100,1)
 
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
         
 
@@ -90,8 +91,8 @@ class C4Net(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
 
-        pi = self.fc4(x)                                                                     
+        pi = self.fc4(x)                                                              
         v = self.fc5(x)   
 
-        return F.softmax(pi,dim=1).numpy()[0], torch.tanh(v).numpy()[0]
+        return F.softmax(pi,dim=1), torch.tanh(v)
     

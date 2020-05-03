@@ -16,10 +16,9 @@ from C4Net import C4Net, ImageDataset
 
 
 
-
 class MCTS():
 
-    def __init__(self,nnet,game,screen,sims):
+    def __init__(self,nnet,screen):
 
         self.nnet = nnet
         self.Qsa = {}
@@ -30,11 +29,9 @@ class MCTS():
         self.Es = {}
         self.Vs = {}
 
-        self.game = game
         self.screen = screen.copy()
         self.actionsize = 7
-        self.sims = sims
-        self.cpuct = 1
+        self.cpuct = 100
         self.EPS = 1e-8
     
     def reset(self):
@@ -47,13 +44,22 @@ class MCTS():
         self.Es.clear()
         self.Vs.clear()
 
-    def get_action_prop(self,temp=1):
+    def copy(self,mcts):
 
-        for i in range(self.sims):
+        self.Qsa = mcts.Qsa
+        self.Nsa = mcts.Nsa
+        self.Ns = mcts.Ns
+        self.Ps = mcts.Ps
+        self.Es = mcts.Es
+        self.Vs = mcts.Vs       
 
-            self.explore(self.game)
+    def get_action_prop(self,game,sims,temp=1):
 
-        board = self.game.board
+        for i in range(sims):
+
+            self.explore(game)
+
+        board = game.board
 
         
         s = board.tostring()
@@ -105,7 +111,10 @@ class MCTS():
 
         if s not in self.Ps:
             with torch.no_grad():
+                # vision = vision.to(self.nnet.device)
                 output_pi, output_v = self.nnet.predict(vision)
+                # print(output_pi)
+                # self.Ps[s],v = output_pi.cpu().numpy()[0], output_v.cpu().numpy()[0]
                 self.Ps[s],v = output_pi.numpy()[0], output_v.numpy()[0]
 
 

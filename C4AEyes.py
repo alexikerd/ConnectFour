@@ -1,6 +1,10 @@
 import math
 import pygame
 
+import os
+from os import path
+import copy
+
 import numpy as np
 import pandas as pd
 import cv2
@@ -8,17 +12,21 @@ from PIL import Image
 
 import torch
 from torch.utils.data import Dataset, DataLoader
+import torch.nn.functional as F
 
 
 from C4Backend import Game, Player
 from C4Net import C4Net, ImageDataset
+from MCTS import MCTS
 
-
-#https://web.stanford.edu/~surag/posts/alphazero.html
+# https://web.stanford.edu/~surag/posts/alphazero.html
+# https://medium.com/applied-data-science/alphago-zero-explained-in-one-diagram-365f5abf67e0
+# https://miro.medium.com/max/2000/1*0pn33bETjYOimWjlqDLLNw.png
 
 NUM_GAMES = 20
 ITERATIONS = 25
 BATCH_SIZE = 1
+CURRENT_DIR = path.abspath(path.curdir)
 
 
 pygame.init()
@@ -47,11 +55,15 @@ namefont = pygame.font.SysFont('Comic Sans MS', 30)
 
 
 game = Game()
+agent = C4Net()
+agent.load_state_dict(torch.load(CURRENT_DIR + f'/Models/Best Model'))
 
+mcts = MCTS(agent,screen)
 
 moves = []
 boards = []
 players = []
+games = []
 
 for _ in range(1):
 
@@ -86,6 +98,8 @@ for _ in range(1):
         image = torch.tensor(image)
 
         boards.append(image)
+        games.append(copy.deepcopy(game))
+
 
 
         if game.is_gameover(game.board,row,column,game.turn+1)==True:
@@ -100,25 +114,48 @@ for _ in range(1):
 
 
 sample = boards[0].unsqueeze(0)
+sample = sample.float()
 
 
 
-agent = C4Net()
+for i,board in enumerate(boards):
 
-with torch.no_grad():
-    prediction = agent.predict(sample.float())
+    sample = board.unsqueeze(0).float()
+
+    target_pi = mcts.get_action_prop(games[i],100)
 
 
-pi = prediction[0]
-q = prediction[1]
+    # print(games[i].turn)
+    # print(games[i].board)
+    with torch.no_grad():
+        print(agent.predict(sample))
+    print(target_pi)
+    # print(' ')
 
-test = np.zeros((7))
 
-test[2:4] = 1
+# target_pi = torch.tensor(mcts.get_action_prop(Game(),100))
 
-print(pi)
-print(q)
-print(pi*test)
+
+# with torch.no_grad():
+#     prediction = agent.predict(sample)
+
+
+
+# pi = prediction[0]
+# q = prediction[1]
+
+# test = np.zeros((7))
+
+# test[2:4] = 1
+
+
+
+# print(pi)
+# print(target_pi)
+
+# print((pi*target_pi))
+# print(F.cross_entropy(pi,target_pi))
+
 
 
 
